@@ -237,7 +237,9 @@ def detect_speaker_segments(audio_path: str) -> list[dict[str, Any]] | None:
         hypothesis = diarization(audio_path)
         segments = []
         for turn, _, speaker in hypothesis.itertracks(yield_label=True):
-            segments.append({"start": turn.start, "end": turn.end, "speaker_id": speaker})
+            segments.append(
+                {"start": turn.start, "end": turn.end, "speaker_id": speaker}
+            )
         return segments
     except Exception:
         return None
@@ -257,7 +259,9 @@ def _cuda_available() -> bool:
 # ---------------------------------------------------------------------------
 
 
-def detect_faces_in_frame(frame_bytes: bytes | None = None, frame_path: str = "") -> dict[str, Any] | None:
+def detect_faces_in_frame(
+    frame_bytes: bytes | None = None, frame_path: str = ""
+) -> dict[str, Any] | None:
     """Detect faces in a single frame using MediaPipe.
 
     Accepts raw bytes or a file path. Returns dict with face_count,
@@ -279,7 +283,9 @@ def detect_faces_in_frame(frame_bytes: bytes | None = None, frame_path: str = ""
             return None
 
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        with mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5) as fd:
+        with mp.solutions.face_detection.FaceDetection(
+            model_selection=1, min_detection_confidence=0.5
+        ) as fd:
             results = fd.process(rgb)
             detections = []
             if results.detections:
@@ -300,7 +306,9 @@ def detect_faces_in_frame(frame_bytes: bytes | None = None, frame_path: str = ""
         return None
 
 
-def detect_hand_gaze(frame_bytes: bytes | None = None, frame_path: str = "") -> dict[str, Any] | None:
+def detect_hand_gaze(
+    frame_bytes: bytes | None = None, frame_path: str = ""
+) -> dict[str, Any] | None:
     """Detect hand/palm positions that may indicate phone use, using MediaPipe Hands."""
     if not HAS_MEDIAPIPE:
         return None
@@ -325,7 +333,10 @@ def detect_hand_gaze(frame_bytes: bytes | None = None, frame_path: str = "") -> 
             hand_count = 0
             if results.multi_hand_landmarks:
                 hand_count = len(results.multi_hand_landmarks)
-            return {"hands_detected": hand_count, "possibly_holding_phone": hand_count >= 2}
+            return {
+                "hands_detected": hand_count,
+                "possibly_holding_phone": hand_count >= 2,
+            }
     except Exception as exc:
         logger.warning("MediaPipe hand detection failed: %s", exc)
         return None

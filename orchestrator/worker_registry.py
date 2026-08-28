@@ -147,13 +147,17 @@ class WorkerRegistry:
                     return False
 
                 self.local_workers[worker_id]["status"] = status
-                self.local_workers[worker_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
+                self.local_workers[worker_id]["updated_at"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
             # Update in Redis
             if self.redis_client:
                 key = f"{self.WORKER_KEY_PREFIX}{worker_id}"
                 self.redis_client.hset(key, "status", status)
-                self.redis_client.hset(key, "updated_at", datetime.now(timezone.utc).isoformat())
+                self.redis_client.hset(
+                    key, "updated_at", datetime.now(timezone.utc).isoformat()
+                )
 
             logger.info(f"Updated worker {worker_id} status to {status}")
             return True
@@ -176,18 +180,24 @@ class WorkerRegistry:
         try:
             with self.lock:
                 if worker_id not in self.local_workers:
-                    logger.warning(f"Received heartbeat from unknown worker: {worker_id}")
+                    logger.warning(
+                        f"Received heartbeat from unknown worker: {worker_id}"
+                    )
                     return False
 
                 self.local_workers[worker_id]["active_tasks"] = active_tasks
-                self.local_workers[worker_id]["last_heartbeat"] = datetime.now(timezone.utc).isoformat()
+                self.local_workers[worker_id]["last_heartbeat"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
                 self.local_workers[worker_id]["status"] = "healthy"
 
             # Update in Redis
             if self.redis_client:
                 key = f"{self.WORKER_KEY_PREFIX}{worker_id}"
                 self.redis_client.hset(key, "active_tasks", active_tasks)
-                self.redis_client.hset(key, "last_heartbeat", datetime.now(timezone.utc).isoformat())
+                self.redis_client.hset(
+                    key, "last_heartbeat", datetime.now(timezone.utc).isoformat()
+                )
                 self.redis_client.hset(key, "status", "healthy")
 
                 # Also store heartbeat timestamp
@@ -258,7 +268,10 @@ class WorkerRegistry:
         available = []
         with self.lock:
             for worker in self.local_workers.values():
-                if worker["status"] == "healthy" and worker["active_tasks"] < worker["capacity"]:
+                if (
+                    worker["status"] == "healthy"
+                    and worker["active_tasks"] < worker["capacity"]
+                ):
                     available.append(worker)
 
         return available
@@ -281,11 +294,19 @@ class WorkerRegistry:
         """Get overall worker registry statistics"""
         with self.lock:
             total_workers = len(self.local_workers)
-            healthy_workers = sum(1 for w in self.local_workers.values() if w["status"] == "healthy")
+            healthy_workers = sum(
+                1 for w in self.local_workers.values() if w["status"] == "healthy"
+            )
             total_capacity = sum(w["capacity"] for w in self.local_workers.values())
-            total_active_tasks = sum(w["active_tasks"] for w in self.local_workers.values())
-            total_processed = sum(w.get("total_tasks_processed", 0) for w in self.local_workers.values())
-            idle_workers = sum(1 for w in self.local_workers.values() if w["active_tasks"] == 0)
+            total_active_tasks = sum(
+                w["active_tasks"] for w in self.local_workers.values()
+            )
+            total_processed = sum(
+                w.get("total_tasks_processed", 0) for w in self.local_workers.values()
+            )
+            idle_workers = sum(
+                1 for w in self.local_workers.values() if w["active_tasks"] == 0
+            )
             active_loads = [w["active_tasks"] for w in self.local_workers.values()]
             avg_active = (total_active_tasks / total_workers) if total_workers else 0
 
@@ -309,7 +330,11 @@ class WorkerRegistry:
                 "total_capacity": total_capacity,
                 "total_active_tasks": total_active_tasks,
                 "capacity_utilization": round(
-                    (total_active_tasks / total_capacity * 100) if total_capacity > 0 else 0,
+                    (
+                        (total_active_tasks / total_capacity * 100)
+                        if total_capacity > 0
+                        else 0
+                    ),
                     2,
                 ),
                 "total_tasks_processed": total_processed,

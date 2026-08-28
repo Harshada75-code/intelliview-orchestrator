@@ -66,7 +66,9 @@ def _after_parallel(session_id: str, video_result: dict, audio_result: dict):
     try:
         logger.info("Parallel video+audio done for %s - running evaluation", session_id)
 
-        session_manager.update_session_status(session_id, session_manager.EVALUATING, {"stage": "evaluation"})
+        session_manager.update_session_status(
+            session_id, session_manager.EVALUATING, {"stage": "evaluation"}
+        )
         evaluation_result = evaluate_answers(session_id)
         logger.info("Answer evaluation completed for session %s", session_id)
 
@@ -75,13 +77,17 @@ def _after_parallel(session_id: str, video_result: dict, audio_result: dict):
         )
         final_risk_score = risk_report["final_risk_score"]
         risk_classification = risk_report["risk_classification"]
-        logger.info("Risk report: %s (score: %s)", risk_classification, final_risk_score)
+        logger.info(
+            "Risk report: %s (score: %s)", risk_classification, final_risk_score
+        )
 
         now = datetime.now(timezone.utc)
         db_session = SessionLocal()
         try:
             interview = db_session.execute(
-                select(InterviewSession).where(InterviewSession.session_id == session_id)
+                select(InterviewSession).where(
+                    InterviewSession.session_id == session_id
+                )
             ).scalar_one_or_none()
             if interview:
                 interview.risk_score = final_risk_score
@@ -99,8 +105,12 @@ def _after_parallel(session_id: str, video_result: dict, audio_result: dict):
 
         logger.info("Successfully completed processing for session %s", session_id)
     except Exception as exc:
-        logger.error("Post-parallel stage failed for %s: %s", session_id, exc, exc_info=True)
-        session_manager.mark_session_failed(session_id, f"Post-parallel stage failed: {exc}")
+        logger.error(
+            "Post-parallel stage failed for %s: %s", session_id, exc, exc_info=True
+        )
+        session_manager.mark_session_failed(
+            session_id, f"Post-parallel stage failed: {exc}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +118,9 @@ def _after_parallel(session_id: str, video_result: dict, audio_result: dict):
 # ---------------------------------------------------------------------------
 
 
-@celery_app.task(bind=True, max_retries=3, name="workers.tasks.process_interview_session")
+@celery_app.task(
+    bind=True, max_retries=3, name="workers.tasks.process_interview_session"
+)
 def process_interview_session(self, session_id):
     """Run video + audio + evaluation + risk scoring for one session.
 
@@ -118,12 +130,16 @@ def process_interview_session(self, session_id):
     worker_hostname = socket.gethostname()
 
     try:
-        logger.info("Worker %s starting interview session: %s", worker_hostname, session_id)
+        logger.info(
+            "Worker %s starting interview session: %s", worker_hostname, session_id
+        )
 
         db_session = SessionLocal()
         try:
             interview = db_session.execute(
-                select(InterviewSession).where(InterviewSession.session_id == session_id)
+                select(InterviewSession).where(
+                    InterviewSession.session_id == session_id
+                )
             ).scalar_one_or_none()
             if interview is None:
                 logger.error("Session %s not found in DB", session_id)
@@ -141,7 +157,9 @@ def process_interview_session(self, session_id):
         db_session = SessionLocal()
         try:
             interview = db_session.execute(
-                select(InterviewSession).where(InterviewSession.session_id == session_id)
+                select(InterviewSession).where(
+                    InterviewSession.session_id == session_id
+                )
             ).scalar_one_or_none()
             if interview:
                 interview.assigned_node = worker_hostname
@@ -152,7 +170,9 @@ def process_interview_session(self, session_id):
 
         # Parallel: video + audio via Celery group
         session_manager.update_session_status(
-            session_id, session_manager.VIDEO_PROCESSING, {"stage": "parallel_video_audio"}
+            session_id,
+            session_manager.VIDEO_PROCESSING,
+            {"stage": "parallel_video_audio"},
         )
 
         parallel_group = group(
@@ -208,7 +228,9 @@ def scan_and_dispatch_retries():
         cursor = 0
         dispatched = 0
         while True:
-            cursor, keys = redis_client.scan(cursor, match=f"{retry_scheduled_prefix}*", count=50)
+            cursor, keys = redis_client.scan(
+                cursor, match=f"{retry_scheduled_prefix}*", count=50
+            )
             for key in keys:
                 try:
                     raw = redis_client.get(key)

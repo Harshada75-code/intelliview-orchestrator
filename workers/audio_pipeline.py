@@ -40,7 +40,9 @@ def _real_transcribe(session_id: str) -> dict[str, Any] | None:
             "text": result["text"],
             "confidence": 0.9,
             "language": result.get("language", "en"),
-            "duration_seconds": sum(s.get("end", 0) - s.get("start", 0) for s in result.get("segments", []))
+            "duration_seconds": sum(
+                s.get("end", 0) - s.get("start", 0) for s in result.get("segments", [])
+            )
             or 120.0,
             "timestamp": time.time(),
         }
@@ -201,7 +203,9 @@ def detect_suspicious_conversation(session_id: str) -> dict[str, Any]:
 
     suspicious = _seeded_unit(session_id, "suspicious") > 0.80
     pattern = (
-        "robotic_response" if suspicious and _seeded_unit(session_id, "p1") > 0.5 else "reading_from_script"
+        "robotic_response"
+        if suspicious and _seeded_unit(session_id, "p1") > 0.5
+        else "reading_from_script"
     )
     return {
         "suspicious_pattern_detected": suspicious,

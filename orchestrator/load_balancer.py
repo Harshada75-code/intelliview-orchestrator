@@ -154,7 +154,9 @@ class LoadBalancer:
         # For medium priority, select from least loaded
         if priority == "medium":
             # Select a worker that's not overloaded
-            underutilized = [w for w in available if w["active_tasks"] < w["capacity"] * 0.7]
+            underutilized = [
+                w for w in available if w["active_tasks"] < w["capacity"] * 0.7
+            ]
             if underutilized:
                 return underutilized[0]
             return available[0]

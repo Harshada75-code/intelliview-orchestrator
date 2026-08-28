@@ -54,7 +54,9 @@ class StateSynchronizer:
             bool: True if successful
         """
         if not self.redis_client:
-            logger.warning(f"Redis not available, skipping cache for session {session_id}")
+            logger.warning(
+                f"Redis not available, skipping cache for session {session_id}"
+            )
             return False
 
         try:
@@ -166,7 +168,9 @@ class StateSynchronizer:
             session_db = SessionLocal()
             try:
                 interview = session_db.execute(
-                    select(InterviewSession).where(InterviewSession.session_id == session_id)
+                    select(InterviewSession).where(
+                        InterviewSession.session_id == session_id
+                    )
                 ).scalar_one_or_none()
 
                 if not interview:
@@ -177,7 +181,10 @@ class StateSynchronizer:
                 if "status" in session_data:
                     interview.status = session_data["status"]
 
-                if "risk_score" in session_data and session_data["risk_score"] is not None:
+                if (
+                    "risk_score" in session_data
+                    and session_data["risk_score"] is not None
+                ):
                     interview.risk_score = session_data["risk_score"]
 
                 if "video_analysis" in session_data:

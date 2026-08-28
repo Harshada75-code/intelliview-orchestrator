@@ -36,11 +36,15 @@ RISK_CONFIG: dict[str, float] = {
     # Video factors
     "video_multiple_persons": float(os.getenv("RISK_VIDEO_MULTIPLE_PERSONS", "0.35")),
     "video_phone_detected": float(os.getenv("RISK_VIDEO_PHONE_DETECTED", "0.25")),
-    "video_suspicious_head_movement": float(os.getenv("RISK_VIDEO_SUSPICIOUS_HEAD", "0.20")),
+    "video_suspicious_head_movement": float(
+        os.getenv("RISK_VIDEO_SUSPICIOUS_HEAD", "0.20")
+    ),
     "video_no_face_detected": float(os.getenv("RISK_VIDEO_NO_FACE", "0.45")),
     # Audio factors
     "audio_background_voices": float(os.getenv("RISK_AUDIO_BACKGROUND_VOICES", "0.35")),
-    "audio_suspicious_pattern": float(os.getenv("RISK_AUDIO_SUSPICIOUS_PATTERN", "0.25")),
+    "audio_suspicious_pattern": float(
+        os.getenv("RISK_AUDIO_SUSPICIOUS_PATTERN", "0.25")
+    ),
     "audio_no_transcription": float(os.getenv("RISK_AUDIO_NO_TRANSCRIPTION", "0.40")),
     # Evaluation factors
     "eval_low_quality": float(os.getenv("RISK_EVAL_LOW_QUALITY", "0.30")),
@@ -96,7 +100,9 @@ class RiskScoringEngine:
         if video_result.get("phone_detected", {}).get("phone_detected"):
             risk_score += RiskScoringEngine.VIDEO_FACTORS["phone_detected"]
 
-        if video_result.get("head_movement_suspicious", {}).get("suspicious_movement_detected"):
+        if video_result.get("head_movement_suspicious", {}).get(
+            "suspicious_movement_detected"
+        ):
             risk_score += RiskScoringEngine.VIDEO_FACTORS["suspicious_head_movement"]
 
         if not video_result.get("face_detected", {}).get("faces_found"):
@@ -112,7 +118,9 @@ class RiskScoringEngine:
         if audio_result.get("background_voices", {}).get("background_voices_detected"):
             risk_score += RiskScoringEngine.AUDIO_FACTORS["background_voices"]
 
-        if audio_result.get("suspicious_conversation", {}).get("suspicious_pattern_detected"):
+        if audio_result.get("suspicious_conversation", {}).get(
+            "suspicious_pattern_detected"
+        ):
             risk_score += RiskScoringEngine.AUDIO_FACTORS["suspicious_pattern"]
 
         if not audio_result.get("transcription", {}).get("text"):
@@ -125,9 +133,15 @@ class RiskScoringEngine:
         """Calculate risk score from answer evaluation."""
         risk_score = 0.0
 
-        quality_score = evaluation_result.get("answer_quality_score", {}).get("overall_quality_score", 50)
-        accuracy_score = evaluation_result.get("technical_accuracy", {}).get("accuracy_score", 50)
-        clarity_score = evaluation_result.get("communication_clarity", {}).get("clarity_score", 50)
+        quality_score = evaluation_result.get("answer_quality_score", {}).get(
+            "overall_quality_score", 50
+        )
+        accuracy_score = evaluation_result.get("technical_accuracy", {}).get(
+            "accuracy_score", 50
+        )
+        clarity_score = evaluation_result.get("communication_clarity", {}).get(
+            "clarity_score", 50
+        )
 
         if quality_score < 40:
             risk_score += RiskScoringEngine.EVALUATION_FACTORS["low_quality_answers"]
@@ -139,7 +153,9 @@ class RiskScoringEngine:
         return min(risk_score, 1.0)
 
     @staticmethod
-    def calculate_final_risk(video_risk: float, audio_risk: float, evaluation_risk: float) -> float:
+    def calculate_final_risk(
+        video_risk: float, audio_risk: float, evaluation_risk: float
+    ) -> float:
         """Calculate final combined risk score using weighted average."""
         final_risk = (
             RiskScoringEngine.VIDEO_WEIGHT * video_risk
@@ -189,7 +205,9 @@ class RiskScoringEngine:
             final_risk,
             risk_classification,
         )
-        risk_factors = RiskScoringEngine._identify_risk_factors(video_result, audio_result, evaluation_result)
+        risk_factors = RiskScoringEngine._identify_risk_factors(
+            video_result, audio_result, evaluation_result
+        )
 
         report = {
             "session_id": session_id,
@@ -201,10 +219,14 @@ class RiskScoringEngine:
                 "evaluation_risk": evaluation_risk,
             },
             "risk_factors": risk_factors,
-            "recommendation": RiskScoringEngine._generate_recommendation(risk_classification),
+            "recommendation": RiskScoringEngine._generate_recommendation(
+                risk_classification
+            ),
         }
 
-        logger.info(f"Risk report generated: {risk_classification} (score: {final_risk})")
+        logger.info(
+            f"Risk report generated: {risk_classification} (score: {final_risk})"
+        )
         return report
 
     @staticmethod
@@ -222,18 +244,26 @@ class RiskScoringEngine:
             risk_factors.append("Multiple persons detected in frame")
         if video_result.get("phone_detected", {}).get("phone_detected"):
             risk_factors.append("Mobile phone detected")
-        if video_result.get("head_movement_suspicious", {}).get("suspicious_movement_detected"):
+        if video_result.get("head_movement_suspicious", {}).get(
+            "suspicious_movement_detected"
+        ):
             risk_factors.append("Suspicious head movement detected")
 
         if audio_result.get("background_voices", {}).get("background_voices_detected"):
             risk_factors.append("Background voices detected - possible external help")
-        if audio_result.get("suspicious_conversation", {}).get("suspicious_pattern_detected"):
+        if audio_result.get("suspicious_conversation", {}).get(
+            "suspicious_pattern_detected"
+        ):
             risk_factors.append("Suspicious conversation pattern detected")
         if not audio_result.get("transcription", {}).get("text"):
             risk_factors.append("No speech detected during interview")
 
-        quality_score = evaluation_result.get("answer_quality_score", {}).get("overall_quality_score", 50)
-        accuracy_score = evaluation_result.get("technical_accuracy", {}).get("accuracy_score", 50)
+        quality_score = evaluation_result.get("answer_quality_score", {}).get(
+            "overall_quality_score", 50
+        )
+        accuracy_score = evaluation_result.get("technical_accuracy", {}).get(
+            "accuracy_score", 50
+        )
 
         if quality_score < 40:
             risk_factors.append("Low answer quality detected")
@@ -281,13 +311,17 @@ class RiskDecisionTree:
             return "HIGH"
 
         # Suspicious head movement
-        if video_result.get("head_movement_suspicious", {}).get("suspicious_movement_detected"):
+        if video_result.get("head_movement_suspicious", {}).get(
+            "suspicious_movement_detected"
+        ):
             return "HIGH"
 
         # Background voices + suspicious conversation together
-        if audio_result.get("background_voices", {}).get("background_voices_detected") and audio_result.get(
-            "suspicious_conversation", {}
-        ).get("suspicious_pattern_detected"):
+        if audio_result.get("background_voices", {}).get(
+            "background_voices_detected"
+        ) and audio_result.get("suspicious_conversation", {}).get(
+            "suspicious_pattern_detected"
+        ):
             return "HIGH"
 
         # Background voices only
@@ -295,23 +329,31 @@ class RiskDecisionTree:
             return "MEDIUM"
 
         # Suspicious conversation only
-        if audio_result.get("suspicious_conversation", {}).get("suspicious_pattern_detected"):
+        if audio_result.get("suspicious_conversation", {}).get(
+            "suspicious_pattern_detected"
+        ):
             return "MEDIUM"
 
         # Poor answer quality
-        quality = evaluation_result.get("answer_quality_score", {}).get("overall_quality_score", 50)
+        quality = evaluation_result.get("answer_quality_score", {}).get(
+            "overall_quality_score", 50
+        )
 
         if quality < 40:
             return "MEDIUM"
 
         # Poor technical accuracy
-        accuracy = evaluation_result.get("technical_accuracy", {}).get("accuracy_score", 50)
+        accuracy = evaluation_result.get("technical_accuracy", {}).get(
+            "accuracy_score", 50
+        )
 
         if accuracy < 40:
             return "MEDIUM"
 
         # Poor communication
-        clarity = evaluation_result.get("communication_clarity", {}).get("clarity_score", 50)
+        clarity = evaluation_result.get("communication_clarity", {}).get(
+            "clarity_score", 50
+        )
 
         if clarity < 40:
             return "MEDIUM"
