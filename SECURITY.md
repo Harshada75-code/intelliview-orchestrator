@@ -40,6 +40,7 @@ Before exposing this service to the public internet:
 - [ ] Restrict `/switch-strategy`, `/retry-session/{id}`, and
       `/detect-failures` to admin-only callers via your reverse proxy
       if your `API_TOKEN` is shared with broader automation.
+- [ ] Enable global rate limiting ('RatelimiterMiddlewere') and enforce strict per-endpoint limits for sensitive routes ('/auth/', '/admin/').
 
 ## Threat model (current)
 

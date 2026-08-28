@@ -1,8 +1,8 @@
 """
 Simple Redis-backed rate limiter middleware for FastAPI.
 
-Uses a sliding-window counter stored in Redis.  Each unique client
-(IP + optional API key) gets a separate counter.  When the limit is
+Uses a sliding-window counter stored in Redis. Each unique client
+(IP + optional API key) gets a separate counter. When the limit is
 exceeded the middleware returns 429 Too Many Requests.
 """
 
@@ -20,16 +20,20 @@ from orchestrator.cache_manager import CacheManager
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_LIMIT = 60  # requests per window
+_DEFAULT_LIMIT = 60  # requests per window for standard endpoints
 _DEFAULT_WINDOW_SECONDS = 60  # 1 minute window
+
+# Strict limits for sensitive paths
+_AUTH_LIMIT = 5  # 5 requests per minute for login/auth routes
+_ADMIN_LIMIT = 10  # 10 requests per minute for admin routes
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """Per-client sliding-window rate limiter backed by Redis.
 
     The key is derived from the client IP and the ``X-API-Token``
-    header (if present).  Paths under ``/health`` and ``/docs`` are
-    exempt from limiting.
+    header (if present). Paths under ``/health`` and ``/docs`` are
+    exempt from limiting. Sensitive paths have stricter thresholds.
     """
 
     EXEMPT_PATHS: frozenset[str] = frozenset({"/health", "/docs", "/openapi.json"})
@@ -53,6 +57,13 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         ):
             return await call_next(request)
 
+        # Determine tier-specific limit based on the route path
+        current_limit = self.limit
+        if path.startswith("/auth/"):
+            current_limit = _AUTH_LIMIT
+        elif path.startswith("/admin/"):
+            current_limit = _ADMIN_LIMIT
+
         client_key = self._client_key(request)
         redis_client = CacheManager()
 
@@ -62,7 +73,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         try:
             now = time.time()
             window_start = now - self.window_seconds
-            redis_key = f"ratelimit:{client_key}"
+            redis_key = f"ratelimit:{path.split('/')[1]}:{client_key}"
 
             pipe = redis_client.raw.pipeline(transaction=False)
             # Remove entries outside the window
@@ -77,7 +88,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
             request_count = results[2]
 
-            if request_count > self.limit:
+            if request_count > current_limit:
                 retry_after = int(self.window_seconds - (now - window_start))
                 return JSONResponse(
                     status_code=429,
