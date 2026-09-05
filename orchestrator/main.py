@@ -12,6 +12,7 @@ Integrates:
 - Task Queue integration with Celery
 """
 
+import asyncio
 import io
 import json
 import logging
@@ -2394,6 +2395,13 @@ async def get_moment_analytics(time_range_hours: int = 24):
 # ========== Dashboard HTML Endpoint ==========
 
 
+def _read_dashboard(path):
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
 @app.get("/dashboard")
 async def get_dashboard():
     """
@@ -2403,28 +2411,20 @@ async def get_dashboard():
         HTML content of the dashboard
     """
     try:
-        import os
-
         dashboard_path = os.path.join(
             os.path.dirname(__file__), "..", "monitoring", "dashboard.html"
         )
 
-        if os.path.exists(dashboard_path):
-            with open(dashboard_path, encoding="utf-8") as f:
-                html_content = f.read()
+        html_content = await asyncio.to_thread(_read_dashboard, dashboard_path)
 
+        if html_content is not None:
             from fastapi.responses import HTMLResponse
 
             return HTMLResponse(content=html_content)
+
         raise HTTPException(status_code=404, detail="Dashboard HTML not found")
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error serving dashboard: {e!s}")
         raise HTTPException(status_code=500, detail=f"Error serving dashboard: {e!s}")
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
